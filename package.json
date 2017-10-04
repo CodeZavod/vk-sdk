@@ -1,0 +1,61 @@
+{
+  "name": "vk-sdk",
+  "version": "0.0.1",
+  "description": "VK unofficial SDK for Node.js",
+  "author": "Vadim Petrov <imposibrus@gmail.com> (https://imposibrus.tk)",
+  "license": "MIT",
+  "main": "dst/VKSDK.js",
+  "typings": "dst/VKSDK.d.ts",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "mocha",
+    "coverage": "nyc mocha"
+  },
+  "homepage": "https://github.com/CodeZavod/vk-sdk",
+  "bugs": {
+    "url": "https://github.com/CodeZavod/vk-sdk/issues"
+  },
+  "keywords": [
+    "sdk",
+    "vk"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CodeZavod/vk-sdk.git"
+  },
+  "engines": {
+    "node": ">=7.0.0"
+  },
+  "files": [
+    "dst/",
+    "src/"
+  ],
+  "nyc": {
+    "reporter": [
+      "text-summary",
+      "html"
+    ],
+    "instrument": true,
+    "report-dir": "./coverage",
+    "temp-directory": "./coverage"
+  },
+  "dependencies": {
+    "date-fns": "^1.28.5",
+    "request": "^2.81.0",
+    "uuid": "^3.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^8.0.20",
+    "@types/uuid": "^3.4.0",
+    "gulp": "github:gulpjs/gulp#4.0",
+    "gulp-typescript": "^3.2.1",
+    "merge2": "^1.2.0",
+    "mocha": "^3.4.2",
+    "nyc": "^11.0.3",
+    "should": "^11.2.1",
+    "sinon": "^2.3.8",
+    "typescript": "^2.4.2"
+  }
+}
