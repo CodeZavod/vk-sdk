@@ -1,6 +1,6 @@
 {
   "name": "@codezavod/vk-sdk",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "VK unofficial SDK for Node.js",
   "author": "Vadim Petrov <imposibrus@gmail.com> (https://imposibrus.tk)",
   "license": "MIT",
@@ -26,8 +26,6 @@
     "src/"
   ],
   "dependencies": {
-    "date-fns": "^1.28.5",
-    "request": "^2.81.0",
     "uuid": "^3.0.1"
   },
   "devDependencies": {
