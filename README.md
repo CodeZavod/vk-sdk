@@ -7,7 +7,7 @@ You still can send PR or issue, but remember this.
 
 Install and save it to `package.json`:
 ```
-npm i codezavod/vk-sdk -S
+npm i @codezavod/vk-sdk -S
 ```
 
 # Usage
