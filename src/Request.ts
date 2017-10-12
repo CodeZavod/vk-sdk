@@ -44,18 +44,6 @@ export default class Request {
         return this;
     }
 
-    public then() {
-        this.cachedSendPromise = this.cachedSendPromise || this.send();
-
-        return this.cachedSendPromise.then(...arguments);
-    }
-
-    public catch() {
-        this.cachedSendPromise = this.cachedSendPromise || this.send();
-
-        return this.cachedSendPromise.catch(...arguments);
-    }
-
     public send() {
         const authData: any = {};
 

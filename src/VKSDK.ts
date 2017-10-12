@@ -99,7 +99,7 @@ export class VKSDK {
 
     public getUsersByIds(userIds: number[], fields: string[] = [], nameCase: string = 'nom') {
         return this.request('users.get')
-            .setBody({user_ids: userIds, fields: fields.join(','), name_case: nameCase});
+            .setBody({user_ids: userIds, fields: fields.join(','), name_case: nameCase}).send();
     }
 
     public getFriends(body: FriendsGetOptions = {}) {
@@ -108,7 +108,7 @@ export class VKSDK {
         }
 
         return this.request('friends.get')
-            .setBody(body);
+            .setBody(body).send();
     }
 
     public getFollowers(body: FollowersGetOptions = {}) {
@@ -117,7 +117,7 @@ export class VKSDK {
         }
 
         return this.request('users.getFollowers')
-            .setBody(body);
+            .setBody(body).send();
     }
 
     public getSubscriptions(body: SubscriptionsGetOptions = {}) {
@@ -126,7 +126,7 @@ export class VKSDK {
         }
 
         return this.request('users.getSubscriptions')
-            .setBody(body);
+            .setBody(body).send();
     }
 
     public getUsersSubscriptionsExtended(body: SubscriptionsGetOptions = {}) {
@@ -141,7 +141,7 @@ export class VKSDK {
 
                     return {items: users};
                 `,
-            });
+            }).send();
     }
 
     public getWall(body: WallGetOptions = {}) {
@@ -150,7 +150,7 @@ export class VKSDK {
         }
 
         return this.request('wall.get')
-            .setBody(body);
+            .setBody(body).send();
     }
 
     public getWallExtended(body: WallGetOptions = {}) {
@@ -183,17 +183,17 @@ export class VKSDK {
 
                     return posts;
                 `,
-            });
+            }).send();
     }
 
     public getVideos(body: VideosGetOptions = {}) {
         return this.request('video.get')
-            .setBody(body);
+            .setBody(body).send();
     }
 
     public getPhotos(body: PhotosGetOptions = {}) {
         return this.request('photos.getAll')
-            .setBody(body);
+            .setBody(body).send();
     }
 
     public request(method: string) {
