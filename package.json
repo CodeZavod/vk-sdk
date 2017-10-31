@@ -26,9 +26,11 @@
     "src/"
   ],
   "dependencies": {
+    "lodash.get": "^4.4.2",
     "uuid": "^3.0.1"
   },
   "devDependencies": {
+    "@types/lodash.get": "^4.4.3",
     "@types/node": "^8.0.20",
     "@types/uuid": "^3.4.0",
     "gulp": "github:gulpjs/gulp#4.0",

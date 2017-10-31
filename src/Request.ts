@@ -4,6 +4,7 @@ import * as https from 'https';
 import * as querystring from 'querystring';
 import * as uuid from 'uuid';
 import Errors from './Errors';
+import {VKSDK} from './VKSDK';
 
 const debugLog = util.debuglog('vk-sdk'),
     defaultRequestOptions = {
@@ -21,14 +22,13 @@ export default class Request {
     private static minRequestsInterval = 1000 / 3; // max 3 requests in sec
 
     private method: string;
-    private sdk: any;
+    private sdk: VKSDK;
     private requestId = uuid.v4();
     private body = {};
     private bodyDefault = {};
     private checkStatusCode = true;
-    private cachedSendPromise: Promise<object>;
 
-    constructor(method: string, sdk: any) {
+    constructor(method: string, sdk: VKSDK) {
         this.method = method;
         this.sdk = sdk;
         this.bodyDefault = {

@@ -1,6 +1,7 @@
 
 import Request from './Request';
 import Errors from './Errors';
+import GenericStream from './GenericStream';
 
 export class VKSDK {
     public static Errors = Errors;
@@ -8,9 +9,14 @@ export class VKSDK {
         'has_photo', 'photo_max_orig', 'photo_id', 'nickname', 'domain', 'screen_name', 'status', 'sex', 'city',
         'country', 'bdate', 'has_mobile', 'contacts', 'occupation', 'career', 'universities',
     ];
+    public static groupFields = [
+        'name', 'screen_name', 'is_closed', 'type', 'photo_200',
+    ];
 
     public reqLastTime: number = new Date(0).getTime();
     public requestingNow: boolean = false;
+    public options: any = {};
+    public token: string = '';
 
     private defaultOptions: any = {
         appSecret: '',
@@ -20,8 +26,6 @@ export class VKSDK {
         language: 'ru',
         secure: true,
     };
-    private options: any = {};
-    private token: string = '';
 
     constructor(options: object) {
         this.options = Object.assign({}, this.defaultOptions, options);
@@ -129,17 +133,21 @@ export class VKSDK {
             .setBody(body).send();
     }
 
-    public getUsersSubscriptionsExtended(body: SubscriptionsGetOptions = {}) {
+    public getUsersSubscriptionsExtended(body: SubscriptionsExtendedGetOptions = {}) {
         return this.request('execute')
             .setBody({
                 code: `
                     var subscriptions = API.users.getSubscriptions(),
                         users = API.users.get({
                             user_ids: subscriptions.users.items,
-                            fields: ${JSON.stringify(body.fields || VKSDK.userFields)}
+                            fields: ${JSON.stringify(body.userFields || VKSDK.userFields)}
+                        }),
+                        groups = API.groups.getById({
+                            group_ids: subscriptions.groups.items,
+                            fields: ${JSON.stringify(body.groupFields || VKSDK.groupFields)}
                         });
 
-                    return {items: users};
+                    return {users: users, groups: groups};
                 `,
             }).send();
     }
@@ -196,6 +204,43 @@ export class VKSDK {
             .setBody(body).send();
     }
 
+    public getCitiesById(citiesIds: number|number[]) {
+        if (!Array.isArray(citiesIds)) {
+            citiesIds = [citiesIds];
+        }
+
+        return this.request('database.getCitiesById')
+            .setBody({
+                city_ids: citiesIds.join(','),
+            }).send();
+    }
+
+    public getCountriesById(countriesIds: number|number[]) {
+        if (!Array.isArray(countriesIds)) {
+            countriesIds = [countriesIds];
+        }
+
+        return this.request('database.getCountriesById')
+            .setBody({
+                country_ids: countriesIds.join(','),
+            }).send();
+    }
+
+    public getGroupsById(groupsIds: number|number[]) {
+        if (!Array.isArray(groupsIds)) {
+            groupsIds = [groupsIds];
+        }
+
+        return this.request('groups.getById')
+            .setBody({
+                group_ids: groupsIds.join(','),
+            }).send();
+    }
+
+    public makeSteam(method: string, body = {}) {
+        return new GenericStream({objectMode: true}, this, method, body);
+    }
+
     public request(method: string) {
         return new Request(method, this);
     }
@@ -222,6 +267,11 @@ export interface FriendsGetOptions extends GenericUserGetOptions {
 export interface FollowersGetOptions extends GenericUserGetOptions {}
 export interface SubscriptionsGetOptions extends GenericGetOptions, GenericOptionsWithFields, GenericExtendableOptions {
     user_id?: number;
+}
+export interface SubscriptionsExtendedGetOptions extends GenericGetOptions, GenericExtendableOptions {
+    user_id?: number;
+    userFields?: string[]|string;
+    groupFields?: string[]|string;
 }
 export interface WallGetOptions extends GenericGetOptions, GenericOptionsWithFields, GenericExtendableOptions {
     owner_id?: number;
