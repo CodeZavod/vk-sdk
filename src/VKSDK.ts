@@ -1,7 +1,8 @@
 
+import omit = require('lodash.omit');
 import Request from './Request';
 import Errors from './Errors';
-import GenericStream from './GenericStream';
+import GenericStream, {CustomSuccessHandler, VKResponse} from './GenericStream';
 
 export class VKSDK {
     public static Errors = Errors;
@@ -12,6 +13,21 @@ export class VKSDK {
     public static groupFields = [
         'name', 'screen_name', 'is_closed', 'type', 'photo_200',
     ];
+
+    public static getFullResponseObj(this: GenericStream, response: VKResponse<any>) {
+        this.requestInProgress = false;
+
+        if (!response || !response.items || !response.items.length) {
+            this.push(null);
+            return;
+        }
+
+        if (!this.ended && !this.destroyed) {
+            this.offset += response.items.length;
+
+            this.push(response);
+        }
+    }
 
     public reqLastTime: number = new Date(0).getTime();
     public requestingNow: boolean = false;
@@ -169,27 +185,118 @@ export class VKSDK {
                         postsAttachments = posts.items@.attachments,
                         videos_ids = [],
                         postAttachments,
-                        attachments = [];
+                        attachments = [],
+                        i = 0;
 
-                    while (postAttachments = postsAttachments.shift()) {
-                        var attachment;
+                    while (i < posts.items.length) {
+                        var post = posts.items[i],
+                            j = 0;
 
-                        while (attachment = postAttachments.shift()) {
+                        while (j < post.attachments.length) {
+                            var attachment = post.attachments[j];
 
                             if (attachment.type == "video") {
                                 videos_ids.push(
                                     attachment.video.owner_id + "_" + attachment.video.id + "_" + 
-                                    attachment.video.access_key,
+                                    attachment.video.access_key
                                 );
                             }
+
+                            j = j + 1;
                         }
+
+                        i = i + 1;
                     }
 
-                    var videos = API.video.get({videos: videos_ids, extended: 1});
+                    if (videos_ids.length) {
+                        var videos = API.video.get({videos: videos_ids, extended: 1});
 
-                    posts.videos = videos.items;
+                        posts.videos = videos.items;
+                    }
 
                     return posts;
+                `,
+            }).send();
+    }
+
+    public getUserPhotosExtended(body: PhotosVideosExtendedGetOptions) {
+        return this.request('execute')
+            .setBody({
+                code: `
+                    var posts = API.photos.getAll(${JSON.stringify(omit(body, ['fields']) || {})}),
+                        owners = API.users.get({
+                            user_ids: posts.items@.owner_id, 
+                            fields: ${JSON.stringify(body.fields || VKSDK.userFields)}
+                        }),
+                        users = API.users.get({
+                            user_ids: posts.items@.user_id,
+                            fields: ${JSON.stringify(body.fields || VKSDK.userFields)}
+                        });
+
+                    posts.profiles = owners + users;
+
+                    return posts;
+                `,
+            }).send();
+    }
+
+    public getUserVideosExtended(body: PhotosVideosExtendedGetOptions) {
+        return this.request('execute')
+            .setBody({
+                code: `
+                    var posts = API.video.get(${JSON.stringify(omit(body, ['fields']) || {})}),
+                        owners = API.users.get({
+                            user_ids: posts.items@.owner_id, 
+                            fields: ${JSON.stringify(body.fields || VKSDK.userFields)}
+                        });
+
+                    posts.profiles = owners;
+
+                    return posts;
+                `,
+            }).send();
+    }
+
+    public getPostLikesExtended(body: PhotosLikesExtendedGetOptions) {
+        return this.request('execute')
+            .setBody({
+                code: `
+                    var likes = API.likes.getList(${JSON.stringify(omit(body, ['userFields', 'groupFields']) || {})}),
+                        usersIds = [],
+                        groupsIds = [],
+                        i = 0,
+                        users = [],
+                        groups = [];
+
+                    while (i < likes.items.length) {
+                        var id = likes.items[i];
+
+                        if (id < 0) {
+                            groupsIds.push(id * -1);
+                        } else {
+                            usersIds.push(id);
+                        }
+
+                        i = i + 1;
+                    }
+
+                    if (usersIds.length) {
+                        users = API.users.get({
+                            user_ids: usersIds,
+                            fields: ${JSON.stringify(body.userFields || VKSDK.userFields)}
+                        });
+                    }
+                    if (groupsIds) {
+                        groups = API.groups.getById({
+                            group_ids: groupsIds,
+                            fields: ${JSON.stringify(body.groupFields || VKSDK.groupFields)}
+                        });
+                    }
+
+                    likes.profiles = users;
+                    likes.groups = groups;
+
+                    return likes;
                 `,
             }).send();
     }
@@ -237,8 +344,12 @@ export class VKSDK {
             }).send();
     }
 
-    public makeSteam(method: string, body = {}) {
-        return new GenericStream({objectMode: true}, this, method, body);
+    public makeStream(method: string, body = {}, customSuccessHandler?: CustomSuccessHandler) {
+        return new GenericStream({objectMode: true, highWaterMark: 1}, this, method, body, customSuccessHandler);
+    }
+
+    public makeWallExtendedSteam(body = {}) {
+        return this.makeStream('getWallExtended', body, VKSDK.getFullResponseObj);
     }
 
     public request(method: string) {
@@ -290,3 +401,23 @@ export interface PhotosGetOptions extends GenericGetOptions, GenericExtendableOp
     need_hidden?: 1 | 0;
     skip_hidden?: 1 | 0;
 }
+
+export interface PhotosVideosExtendedGetOptions extends PhotosGetOptions, GenericOptionsWithFields {}
+
+export interface PhotosLikesExtendedGetOptions extends GenericGetOptions, GenericExtendableOptions {
+    type: 'post' | 'comment' | 'photo' | 'audio' | 'video' | 'note' | 'market' | 'photo_comment' | 'video_comment' |
+        'topic_comment' | 'market_comment' | 'sitepage';
+    owner_id: number;
+    item_id?: number;
+    page_url?: string;
+    filter?: 'likes' | 'copies';
+    friends_only?: 0 | 1;
+    skip_own?: 0 | 1;
+    userFields?: string[] | string;
+    groupFields?: string[] | string;
+}
+
+export {
+    VKResponse, VKUserCareer, VKUserObject, VKPostGeoObject, VKPostAttachmentObject, VKPostObject, VKUserRegion,
+    VKUniversityObject, VKGroupContactObject, VKGroupObject, VKVideoObject, VKPhotoObject,
+} from './GenericStream';
