@@ -117,7 +117,7 @@ export class VKSDK {
         return this.token;
     }
 
-    public getUsersByIds(userIds: number[], fields: string[] = [], nameCase: string = 'nom') {
+    public getUsersByIds(userIds: number[] | string[], fields: string[] = [], nameCase: string = 'nom') {
         return this.request('users.get')
             .setBody({user_ids: userIds, fields: fields.join(','), name_case: nameCase}).send();
     }
