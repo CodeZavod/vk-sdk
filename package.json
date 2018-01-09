@@ -1,6 +1,6 @@
 {
   "name": "@codezavod/vk-sdk",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "VK unofficial SDK for Node.js",
   "author": "Vadim Petrov <imposibrus@gmail.com> (https://imposibrus.tk)",
   "license": "MIT",
@@ -27,6 +27,7 @@
   "dependencies": {
     "lodash.get": "^4.4.2",
     "lodash.omit": "^4.5.0",
+    "stronger-typed-streams": "0.1.2",
     "uuid": "^3.0.1"
   },
   "devDependencies": {
@@ -37,6 +38,6 @@
     "gulp": "github:gulpjs/gulp#4.0",
     "gulp-typescript": "^3.2.1",
     "merge2": "^1.2.0",
-    "typescript": "^2.4.2"
+    "typescript": "2.5.3"
   }
 }

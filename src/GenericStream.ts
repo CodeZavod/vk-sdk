@@ -1,15 +1,22 @@
 
-import {Readable, ReadableOptions} from 'stream';
-import {VKSDK} from './VKSDK';
+import {ReadableOptions} from 'stream';
+import {Readable} from 'stronger-typed-streams';
 import get = require('lodash.get');
+import {Dictionary} from 'lodash';
 
-export default class GenericStream extends Readable {
+import {VKSDK} from './VKSDK';
+
+export default class GenericStream<
+    TBody extends Dictionary<any>,
+    TResponse,
+    TOut
+> extends Readable<TOut> {
     public requestInProgress = false;
     public offset = 0;
     public ended: boolean;
     public destroyed: boolean;
 
-    private externalBuffer = [];
+    private externalBuffer: TOut[] = [];
     private boundErrorHandler = this.errorHandler.bind(this);
     private boundSuccessHandler = this.successHandler.bind(this);
 
@@ -17,14 +24,10 @@ export default class GenericStream extends Readable {
         opt: ReadableOptions,
         private sdk: VKSDK,
         public method: string,
-        public body: any = {},
-        private customSuccessHandler?: CustomSuccessHandler,
+        public body: TBody,
+        private customSuccessHandler?: CustomSuccessHandler<TBody, TResponse, TOut>,
     ) {
         super(opt);
-
-        if (!this.body.count) {
-            this.body.count = 10;
-        }
 
         if (this.customSuccessHandler) {
             this.customSuccessHandler = this.customSuccessHandler.bind(this);
@@ -33,7 +36,9 @@ export default class GenericStream extends Readable {
 
     public _read(size: number) {
         while (this.externalBuffer.length && !this.ended && !this.destroyed) {
-            if (!this.push(this.externalBuffer.shift())) {
+            const chunk = this.externalBuffer.shift();
+
+            if (chunk && !this.push(chunk)) {
                 return;
             }
         }
@@ -50,9 +55,14 @@ export default class GenericStream extends Readable {
     }
 
     public async getItems(offset: number) {
-        const body = Object.assign({}, this.body, {offset});
+        const body = Object.assign({count: 10}, this.body, {offset}),
+            result = await this.sdk[this.method](body);
 
-        return get(await this.sdk[this.method](body), 'response');
+        if (get(result, 'error')) {
+            throw result;
+        }
+
+        return get(result, 'response');
     }
 
     public destroy(...args: any[]) {
@@ -77,7 +87,9 @@ export default class GenericStream extends Readable {
         this.offset += response.items.length;
 
         while (response.items.length && !this.ended && !this.destroyed) {
-            if (!this.push(response.items.shift())) {
+            const chunk = response.items.shift();
+
+            if (chunk && !this.push(chunk)) {
                 [].push.apply(this.externalBuffer, response.items);
                 break;
             }
@@ -85,12 +97,15 @@ export default class GenericStream extends Readable {
     }
 }
 
-export interface VKResponse<T> {
-    count: number;
-    items: T[];
+export interface VKResponse<T> extends VKGenericResponse<T> {
     profiles?: VKUserObject[];
     groups?: VKGroupObject[];
     videos?: VKVideoObject[];
+}
+
+export interface VKGenericResponse<T> {
+    count: number;
+    items: T[];
 }
 
 export interface VKUserCareer {
@@ -274,4 +289,7 @@ export interface VKPhotoObject {
 
 
 
-export type CustomSuccessHandler = (this: GenericStream, response: VKResponse<any>) => void;
+export type CustomSuccessHandler<U, T, TOut> = (
+    this: GenericStream<U, T, TOut>,
+    response: T,
+) => void;

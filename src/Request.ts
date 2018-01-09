@@ -14,7 +14,7 @@ const debugLog = util.debuglog('vk-sdk'),
     successStatusCodes = new Set([200, 201, 202, 204, 304]),
     log = debugLog.bind(debugLog, 'Request: ');
 
-export default class Request {
+export class Request<TBody> {
     private static headers = {
         'Content-Type': 'application/x-www-form-urlencoded',
         'User-agent': 'nodejs',
@@ -44,7 +44,7 @@ export default class Request {
         return this;
     }
 
-    public send() {
+    public send(): Promise<VKResp<TBody>> {
         const authData: any = {};
 
         if (this.sdk.options.secure) {
@@ -93,18 +93,19 @@ export default class Request {
                         this.sdk.reqLastTime = Date.now();
                         this.sdk.requestingNow = false;
 
-                        let resJSON;
+                        log(`(${this.requestId}) Request.send: response statusCode:`, res.statusCode);
+                        log(`(${this.requestId}) Request.send: response headers:`, res.headers);
+
+                        let resJSON: VKResp<TBody>;
 
                         try {
                             resJSON = JSON.parse(apiResponse.join(''));
                         } catch (err) {
                             err.res = {requestId: this.requestId};
-
                             reject(err);
-                        }
 
-                        log(`(${this.requestId}) Request.send: response statusCode:`, res.statusCode);
-                        log(`(${this.requestId}) Request.send: response headers:`, res.headers);
+                            return;
+                        }
 
                         if (this.checkStatusCode && !successStatusCodes.has(res.statusCode as number)) {
                             const invalidStatusCodeError = new Errors.InvalidStatusCodeError();
@@ -144,4 +145,23 @@ export default class Request {
             }, 50);
         }
     }
+}
+
+export type VKResp<T> = VKSuccessfulResponse<T> | VKErrorResp;
+
+export interface VKSuccessfulResponse<T> {
+    response: T[];
+}
+
+export interface VKErrorResp {
+    error: {
+        error_code: number;
+        error_msg: string;
+        request_params?: VKRespParam[];
+    };
+}
+
+export interface VKRespParam {
+    key: string;
+    value: string;
 }

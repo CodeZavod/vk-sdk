@@ -1,8 +1,12 @@
 
 import omit = require('lodash.omit');
-import Request from './Request';
+import {Request, VKErrorResp, VKRespParam, VKSuccessfulResponse} from './Request';
 import Errors from './Errors';
-import GenericStream, {CustomSuccessHandler, VKResponse} from './GenericStream';
+import GenericStream, {
+    CustomSuccessHandler, VKGenericResponse, VKGroupObject, VKPhotoObject, VKPostObject, VKResponse, VKUserObject,
+    VKUserRegion,
+    VKVideoObject,
+} from './GenericStream';
 
 export class VKSDK {
     public static Errors = Errors;
@@ -14,7 +18,10 @@ export class VKSDK {
         'name', 'screen_name', 'is_closed', 'type', 'photo_200',
     ];
 
-    public static getFullResponseObj(this: GenericStream, response: VKResponse<any>) {
+    public static getFullResponseObj<TBody, TResponse, TOut>(
+        this: GenericStream<TBody, TResponse & VKGenericResponse<any>, TResponse>,
+        response: TResponse & VKGenericResponse<any>,
+    ) {
         this.requestInProgress = false;
 
         if (!response || !response.items || !response.items.length) {
@@ -118,7 +125,7 @@ export class VKSDK {
     }
 
     public getUsersByIds(userIds: number[] | string[], fields: string[] = [], nameCase: string = 'nom') {
-        return this.request('users.get')
+        return this.request<VKUserObject>('users.get')
             .setBody({user_ids: userIds, fields: fields.join(','), name_case: nameCase}).send();
     }
 
@@ -127,7 +134,7 @@ export class VKSDK {
             body.fields = body.fields.join(',');
         }
 
-        return this.request('friends.get')
+        return this.request<VKUserObject>('friends.get')
             .setBody(body).send();
     }
 
@@ -136,7 +143,7 @@ export class VKSDK {
             body.fields = body.fields.join(',');
         }
 
-        return this.request('users.getFollowers')
+        return this.request<VKUserObject>('users.getFollowers')
             .setBody(body).send();
     }
 
@@ -145,12 +152,12 @@ export class VKSDK {
             body.fields = body.fields.join(',');
         }
 
-        return this.request('users.getSubscriptions')
+        return this.request<SubscriptionObject>('users.getSubscriptions')
             .setBody(body).send();
     }
 
     public getUsersSubscriptionsExtended(body: SubscriptionsExtendedGetOptions = {}) {
-        return this.request('execute')
+        return this.request<VKResponse<SubscriptionObject>>('execute')
             .setBody({
                 code: `
                     var subscriptions = API.users.getSubscriptions(),
@@ -173,12 +180,12 @@ export class VKSDK {
             body.fields = body.fields.join(',');
         }
 
-        return this.request('wall.get')
+        return this.request<VKPostObject>('wall.get')
             .setBody(body).send();
     }
 
     public getWallExtended(body: WallGetOptions = {}) {
-        return this.request('execute')
+        return this.request<VKResponse<VKPostObject>>('execute')
             .setBody({
                 code: `
                     var posts = API.wall.get(${JSON.stringify(body)}),
@@ -220,7 +227,7 @@ export class VKSDK {
     }
 
     public getUserPhotosExtended(body: PhotosVideosExtendedGetOptions) {
-        return this.request('execute')
+        return this.request<VKResponse<VKPhotoObject>>('execute')
             .setBody({
                 code: `
                     var posts = API.photos.getAll(${JSON.stringify(omit(body, ['fields']) || {})}),
@@ -241,7 +248,7 @@ export class VKSDK {
     }
 
     public getUserVideosExtended(body: PhotosVideosExtendedGetOptions) {
-        return this.request('execute')
+        return this.request<VKResponse<VKVideoObject>>('execute')
             .setBody({
                 code: `
                     var posts = API.video.get(${JSON.stringify(omit(body, ['fields']) || {})}),
@@ -258,7 +265,7 @@ export class VKSDK {
     }
 
     public getPostLikesExtended(body: PhotosLikesExtendedGetOptions) {
-        return this.request('execute')
+        return this.request<VKResponse<number>>('execute')
             .setBody({
                 code: `
                     var likes = API.likes.getList(${JSON.stringify(omit(body, ['userFields', 'groupFields']) || {})}),
@@ -302,12 +309,12 @@ export class VKSDK {
     }
 
     public getVideos(body: VideosGetOptions = {}) {
-        return this.request('video.get')
+        return this.request<VKVideoObject>('video.get')
             .setBody(body).send();
     }
 
     public getPhotos(body: PhotosGetOptions = {}) {
-        return this.request('photos.getAll')
+        return this.request<VKPhotoObject>('photos.getAll')
             .setBody(body).send();
     }
 
@@ -316,7 +323,7 @@ export class VKSDK {
             citiesIds = [citiesIds];
         }
 
-        return this.request('database.getCitiesById')
+        return this.request<VKUserRegion>('database.getCitiesById')
             .setBody({
                 city_ids: citiesIds.join(','),
             }).send();
@@ -327,7 +334,7 @@ export class VKSDK {
             countriesIds = [countriesIds];
         }
 
-        return this.request('database.getCountriesById')
+        return this.request<VKUserRegion>('database.getCountriesById')
             .setBody({
                 country_ids: countriesIds.join(','),
             }).send();
@@ -338,23 +345,96 @@ export class VKSDK {
             groupsIds = [groupsIds];
         }
 
-        return this.request('groups.getById')
+        return this.request<VKGroupObject>('groups.getById')
             .setBody({
                 group_ids: groupsIds.join(','),
             }).send();
     }
 
-    public makeStream(method: string, body = {}, customSuccessHandler?: CustomSuccessHandler) {
-        return new GenericStream({objectMode: true, highWaterMark: 1}, this, method, body, customSuccessHandler);
+    public makeStream<TBody, TResponse, TOut>(
+        method: string,
+        body: TBody,
+        customSuccessHandler?: CustomSuccessHandler<TBody, TResponse, TOut>,
+    ) {
+        return new GenericStream<TBody, TResponse, TOut>(
+            {objectMode: true, highWaterMark: 1},
+            this,
+            method,
+            body,
+            customSuccessHandler,
+        );
     }
 
-    public makeWallExtendedSteam(body = {}) {
-        return this.makeStream('getWallExtended', body, VKSDK.getFullResponseObj);
+    public makeWallExtendedSteam(body: WallGetOptions = {}) {
+        return this.makeStream<WallGetOptions, VKResponse<VKPostObject>, VKResponse<VKPostObject>>(
+            'getWallExtended',
+            body,
+            VKSDK.getFullResponseObj,
+        );
     }
 
-    public request(method: string) {
-        return new Request(method, this);
+    public makeUserVideosExtendedSteam(body: PhotosVideosExtendedGetOptions = {}) {
+        return this.makeStream<PhotosVideosExtendedGetOptions, VKResponse<VKVideoObject>, VKResponse<VKVideoObject>>(
+            'getUserVideosExtended',
+            body,
+            VKSDK.getFullResponseObj,
+        );
     }
+
+    public makeSubscriptionsSteam(body: SubscriptionsGetOptions = {}) {
+        return this.makeStream<SubscriptionsGetOptions, VKResponse<SubscriptionObject>, SubscriptionObject>(
+            'getSubscriptions',
+            body,
+        );
+    }
+
+    public makeFollowersSteam(body: FollowersGetOptions = {}) {
+        return this.makeStream<FollowersGetOptions, VKResponse<VKUserObject>, VKUserObject>(
+            'getFollowers',
+            body,
+        );
+    }
+
+    public makeFriendsSteam(body: FriendsGetOptions = {}) {
+        return this.makeStream<FriendsGetOptions, VKResponse<VKUserObject>, VKUserObject>(
+            'getFriends',
+            body,
+        );
+    }
+
+    public makePostLikesExtendedSteam(body: PhotosLikesExtendedGetOptions) {
+        return this.makeStream<
+            PhotosLikesExtendedGetOptions,
+            VKResponse<number>,
+            VKResponse<number>
+        >(
+            'getPostLikesExtended',
+            body,
+            VKSDK.getFullResponseObj,
+        );
+    }
+
+    public makeUserPhotosExtendedSteam(body: PhotosVideosExtendedGetOptions) {
+        return this.makeStream<
+            PhotosVideosExtendedGetOptions,
+            VKResponse<VKPhotoObject>,
+            VKResponse<VKPhotoObject>
+        >(
+            'getUserPhotosExtended',
+            body,
+            VKSDK.getFullResponseObj,
+        );
+    }
+
+    public request<TBody>(method: string) {
+        return new Request<TBody>(method, this);
+    }
+}
+
+export type SubscriptionObject = SubscriptionUser | VKGroupObject;
+
+export interface SubscriptionUser extends VKUserObject {
+    type: 'profile';
 }
 
 export interface GenericExtendableOptions {
@@ -421,3 +501,5 @@ export {
     VKResponse, VKUserCareer, VKUserObject, VKPostGeoObject, VKPostAttachmentObject, VKPostObject, VKUserRegion,
     VKUniversityObject, VKGroupContactObject, VKGroupObject, VKVideoObject, VKPhotoObject,
 } from './GenericStream';
+
+export {VKResp, VKSuccessfulResponse, VKErrorResp, VKRespParam} from './Request';
