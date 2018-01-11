@@ -37,7 +37,7 @@ export class VKSDK {
     }
 
     public reqLastTime: number = new Date(0).getTime();
-    public requestingNow: boolean = false;
+    public requestsInProgress: number = 0;
     public options: any = {};
     public token: string = '';
 
