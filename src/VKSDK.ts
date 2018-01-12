@@ -160,7 +160,9 @@ export class VKSDK {
         return this.request<VKResponse<SubscriptionObject>>('execute')
             .setBody({
                 code: `
-                    var subscriptions = API.users.getSubscriptions(),
+                    var subscriptions = API.users.getSubscriptions(${JSON.stringify(
+                        omit(body, ['userFields', 'groupFields']) || {},
+                        )}),
                         users = API.users.get({
                             user_ids: subscriptions.users.items,
                             fields: ${JSON.stringify(body.userFields || VKSDK.userFields)}
@@ -240,7 +242,9 @@ export class VKSDK {
                             fields: ${JSON.stringify(body.fields || VKSDK.userFields)}
                         });
 
-                    posts.profiles = owners + users;
+                    if (posts) {
+                        posts.profiles = owners + users;
+                    }
 
                     return posts;
                 `,
@@ -257,7 +261,9 @@ export class VKSDK {
                             fields: ${JSON.stringify(body.fields || VKSDK.userFields)}
                         });
 
-                    posts.profiles = owners;
+                    if (posts) {
+                        posts.profiles = owners;
+                    }
 
                     return posts;
                 `,
@@ -300,8 +306,10 @@ export class VKSDK {
                         });
                     }
 
-                    likes.profiles = users;
-                    likes.groups = groups;
+                    if (likes) {
+                        likes.profiles = users;
+                        likes.groups = groups;
+                    }
 
                     return likes;
                 `,
