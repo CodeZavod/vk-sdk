@@ -111,10 +111,10 @@ export interface VKGenericResponse<T> {
 }
 
 export interface VKUserCareer {
-    group_id?: number;
+    group_id?: number | null;
     company?: string;
-    country_id?: number;
-    city_id?: number;
+    country_id?: number | null;
+    city_id?: number | null;
     city_name?: string;
     from?: number;
     until?: number;
