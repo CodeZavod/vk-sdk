@@ -9,6 +9,7 @@ import * as uuid from 'uuid';
 
 import Errors from './Errors';
 import {VKSDK} from './VKSDK';
+import {VKGenericResponse} from './GenericStream';
 
 const debugLog = util.debuglog('vk-sdk'),
     defaultRequestOptions: RequestOptions = {
@@ -18,6 +19,10 @@ const debugLog = util.debuglog('vk-sdk'),
     log = debugLog.bind(debugLog, 'Request: ');
 
 export class Request<TBody> {
+    public static isErrorResp(resJSON: VKResp<any>): resJSON is VKErrorResp {
+        return !!(resJSON as VKErrorResp).error;
+    }
+
     private static headers: OutgoingHttpHeaders = {
         'Content-Type': 'application/x-www-form-urlencoded',
         'User-agent': 'nodejs',
@@ -144,7 +149,7 @@ export class Request<TBody> {
                     return reject(invalidStatusCodeError);
                 }
 
-                if (this.isErrorResp(resJSON) && resJSON.error.error_code === 6 && this.repeatOnLimitError) {
+                if (Request.isErrorResp(resJSON) && resJSON.error.error_code === 6 && this.repeatOnLimitError) {
                     log(`(${this.requestId}) request: 'Too many requests per second'. repeating`);
                     this.waitForNextRequest(this.boundRequest);
                     return;
@@ -166,10 +171,6 @@ export class Request<TBody> {
         this.sdk.reqLastTime = Date.now();
     }
 
-    private isErrorResp(resJSON: VKSuccessfulResponse<TBody> | VKErrorResp): resJSON is VKErrorResp {
-        return !!(resJSON as VKErrorResp).error;
-    }
-
     private isRequestsLimitPassed() {
         return Date.now() - this.sdk.reqLastTime > Request.minRequestsInterval && this.sdk.requestsInProgress === 0;
     }
@@ -185,7 +186,7 @@ export class Request<TBody> {
     }
 }
 
-export type VKResp<T> = VKSuccessfulResponse<T> | VKErrorResp;
+export type VKResp<T> = VKGenericResponse<T> | VKSuccessfulResponse<T> | VKErrorResp;
 
 export interface VKSuccessfulResponse<T> {
     response: T[];

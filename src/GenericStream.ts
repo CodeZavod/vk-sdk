@@ -29,6 +29,8 @@ export default class GenericStream<
     ) {
         super(opt);
 
+        this.offset = this.body.offset || 0;
+
         if (this.customSuccessHandler) {
             this.customSuccessHandler = this.customSuccessHandler.bind(this);
         }

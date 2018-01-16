@@ -1,12 +1,15 @@
 {
   "name": "@codezavod/vk-sdk",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "VK unofficial SDK for Node.js",
   "author": "Vadim Petrov <imposibrus@gmail.com> (https://imposibrus.tk)",
   "license": "MIT",
   "main": "dst/VKSDK.js",
   "typings": "dst/VKSDK.d.ts",
   "homepage": "https://github.com/CodeZavod/vk-sdk",
+  "scripts": {
+    "prepack": "gulp compile"
+  },
   "bugs": {
     "url": "https://github.com/CodeZavod/vk-sdk/issues"
   },

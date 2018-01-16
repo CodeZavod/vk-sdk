@@ -18,6 +18,8 @@ export class VKSDK {
         'name', 'screen_name', 'is_closed', 'type', 'photo_200',
     ];
 
+    public static isErrorResp = Request.isErrorResp;
+
     public static getFullResponseObj<TBody, TResponse, TOut>(
         this: GenericStream<TBody, TResponse & VKGenericResponse<any>, TResponse>,
         response: TResponse & VKGenericResponse<any>,
